@@ -274,6 +274,7 @@ installed via Guix.")
     scss-mode ;;css-ls - vscode-langservers-extracted
     html-mode ;;html-ls - vscode-langservers-extracted
     js-mode ;;ts-ls - typescript-language-server
+    js2-mode ;;ts-ls - modern es6+ support
     js-jsx-mode ;;ts-ls - typescript-language-server
     typescript-mode ;;ts-ls - typescript-language-server
     web-mode ;; ts-ls/html-ls/css-ls
@@ -464,7 +465,59 @@ installed via Guix.")
   :init
   (setq
    global-flycheck-mode t
-   flycheck-emacs-lisp-load-path 'inherit))
+   flycheck-emacs-lisp-load-path 'inherit)
+  :config
+  (progn
+    (setq-default flycheck-disabled-checkers
+      (append flycheck-disabled-checkers '(javascript-jshint)))
+    (flycheck-add-mode 'javascript-eslint 'web-mode)
+    (setq-default flycheck-temp-prefix ".flycheck")
+    (setq-default flycheck-disabled-checkers
+		  (append flycheck-disabled-checkers '(json-jsonlist)))))
+
+;; configure web-mode to work with eslint
+(use-package web-mode
+  :ensure t
+  :config
+  (progn
+    ;; indentation of 2 for all 3 modes
+    (defun my-web-mode-hook ()
+      ;; http://web-mode.org/
+      (setq web-mode-markup-indent-offset 2
+	    web-mode-css-indent-offset 2
+	    web-mode-code-indent-offset 2))
+    ;; check for local eslint before using global config
+    (defun my/use-eslint-from-node-modules ()
+      (let* ((root (locate-dominating-file
+                    (or (buffer-file-name) default-directory)
+                    "node_modules"))
+             (eslint (and root
+                          (expand-file-name "node_modules/eslint/bin/eslint.js"
+                                            root))))
+	(when (and eslint (file-executable-p eslint))
+	  (setq-local flycheck-javascript-eslint-executable eslint)))))
+  ;; for better jsx syntax-highlighting in web-mode
+  ;; - courtesy of Patrick @halbtuerke - reworked original
+  (advice-add 'web-mode-highlight-part
+	      :around
+	      (lambda (orig-func &rest args)
+		(if (equal web-mode-content-type "jsx")
+		    (let ((web-mode-enable-part-face nil))
+		      (apply orig-func args))
+		  (apply orig-func args))))
+  :hook
+  (web-mode-hook . #'my-web-mode-hook)
+  (flycheck-mode-hook . #'my/use-eslint-from-node-modules))
+
+;; makes sure the exec-path-from-shell is installed when in macos
+(when (memq window-system '(mac ns))
+  (use-package exec-path-from-shell
+    :ensure t
+    :config (exec-path-from-shell-initialize)))
+
+;; setting up eslint, babel, and jsx(react) - need flycheck and lsp pre installed
+;; npm install -g eslint @babel/core @babel/eslint-parser eslint-plugin-react
+;; create a default ~/.eslintrc or local .eslintrc
 
 ;; setting up external language lib for lsp-mode client
 
