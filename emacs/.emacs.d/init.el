@@ -75,6 +75,7 @@
 ;; use this as an alternative to use-package
 (straight-use-package '(setup :type git :host nil :repo "https://git.sr.ht/~pkal/setup"))
 (require 'setup)
+
 ;; Uncomment this for debugging purposes
 ;; (defun dw/log-require (&rest args)
 ;;   (with-current-buffer (get-buffer-create "*require-log*")
@@ -443,6 +444,7 @@ installed via Guix.")
   :config
   (which-key-mode))
 
+;; company auto complete
 (use-package company
   :after
   lsp-mode
@@ -460,54 +462,14 @@ installed via Guix.")
   :hook
   (company-mode . company-box-mode))
 
+;; flycheck linting config
 (use-package flycheck
   :ensure t
   :init
   (setq
    global-flycheck-mode t
-   flycheck-emacs-lisp-load-path 'inherit)
-  :config
-  (progn
-    (setq-default flycheck-disabled-checkers
-      (append flycheck-disabled-checkers '(javascript-jshint)))
-    (flycheck-add-mode 'javascript-eslint 'web-mode)
-    (setq-default flycheck-temp-prefix ".flycheck")
-    (setq-default flycheck-disabled-checkers
-		  (append flycheck-disabled-checkers '(json-jsonlist)))))
+   flycheck-emacs-lisp-load-path 'inherit))
 
-;; configure web-mode to work with eslint
-(use-package web-mode
-  :ensure t
-  :config
-  (progn
-    ;; indentation of 2 for all 3 modes
-    (defun my-web-mode-hook ()
-      ;; http://web-mode.org/
-      (setq web-mode-markup-indent-offset 2
-	    web-mode-css-indent-offset 2
-	    web-mode-code-indent-offset 2))
-    ;; check for local eslint before using global config
-    (defun my/use-eslint-from-node-modules ()
-      (let* ((root (locate-dominating-file
-                    (or (buffer-file-name) default-directory)
-                    "node_modules"))
-             (eslint (and root
-                          (expand-file-name "node_modules/eslint/bin/eslint.js"
-                                            root))))
-	(when (and eslint (file-executable-p eslint))
-	  (setq-local flycheck-javascript-eslint-executable eslint)))))
-  ;; for better jsx syntax-highlighting in web-mode
-  ;; - courtesy of Patrick @halbtuerke - reworked original
-  (advice-add 'web-mode-highlight-part
-	      :around
-	      (lambda (orig-func &rest args)
-		(if (equal web-mode-content-type "jsx")
-		    (let ((web-mode-enable-part-face nil))
-		      (apply orig-func args))
-		  (apply orig-func args))))
-  :hook
-  (web-mode-hook . #'my-web-mode-hook)
-  (flycheck-mode-hook . #'my/use-eslint-from-node-modules))
 
 ;; makes sure the exec-path-from-shell is installed when in macos
 (when (memq window-system '(mac ns))
@@ -515,11 +477,43 @@ installed via Guix.")
     :ensure t
     :config (exec-path-from-shell-initialize)))
 
-;; setting up eslint, babel, and jsx(react) - need flycheck and lsp pre installed
-;; npm install -g eslint @babel/core @babel/eslint-parser eslint-plugin-react
-;; create a default ~/.eslintrc or local .eslintrc
+;;; setting up special language configuration for lsp-mode client
 
-;; setting up external language lib for lsp-mode client
+;; eslint for project-specific eslint binary - ensuring compatibility with all projects
+;; local binary location is usually 'node_modules/.bin/eslint'
+;; (use-package flymake-eslint
+;;   :ensure t
+;;   :config
+;;   ;; If Emacs is compiled with JSON support
+;;   (setq flymake-eslint-prefer-json-diagnostics t)
+    
+;;   (defun lemacs/use-local-eslint ()
+;;     "Set project's `node_modules' binary eslint as first priority.
+;; If nothing is found, keep the default value flymake-eslint set or
+;; your override of `flymake-eslint-executable-name.'"
+;;     (interactive)
+;;     (let* ((root (locate-dominating-file (buffer-file-name) "node_modules"))
+;;            (eslint (and root
+;;                         (expand-file-name "node_modules/.bin/eslint"
+;;                                           root))))
+;;       (when (and eslint (file-executable-p eslint))
+;;         (setq-local flymake-eslint-executable-name eslint)
+;;         (message (format "Found local ESLINT! Setting: %s" eslint))
+;;         (flymake-eslint-enable))))
+
+
+;;   (defun lemacs/configure-eslint-with-flymake ()
+;;     "Enable flymake-eslint for relevant web-dev modes."
+;;     (when (memq major-mode
+;;                 '(javascript-mode web-mode js-mode js2-mode jsx-mode
+;;                   typescript-mode typescriptreact-mode tsx-ts-mode))
+;;       (lemacs/use-local-eslint)))
+;;   :hook
+;;   (lsp-mode . #'lemacs/configure-eslint-with-flymake)
+;;   ;; With older projects without LSP or if eglot fails
+;;   ;; you can call interactivelly M-x lemacs/use-local-eslint RET
+;;   ;; or add a hook like:
+;;   (js-ts-mode . #'lemacs/configure-eslint-with-flymake))
 
 ;; haskell
 (use-package lsp-haskell
@@ -530,6 +524,7 @@ installed via Guix.")
     haskell-literate-mode-hook
     ) . lsp-deferred))
 
+;; c-sharp
 (use-package csharp-mode
   :ensure t
   :init
