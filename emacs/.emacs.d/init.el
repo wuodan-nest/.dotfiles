@@ -49,102 +49,6 @@
                      (emacs-init-time "%.2f")
                      gcs-done)))
 
-;; Package Management
-(unless (featurep 'straight) ;; Install straight.el package manager
-  (defvar bootstrap-version) ;; Bootstrap straight.el
-  (let ((bootstrap-file
-         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-        (bootstrap-version 5))
-    (unless (file-exists-p bootstrap-file)
-      (with-current-buffer
-          (url-retrieve-synchronously
-           "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
-           'silent 'inhibit-cookies)
-        (goto-char (point-max))
-        (eval-print-last-sexp)))
-    (load bootstrap-file nil 'nomessage)))
-
-(straight-use-package 'use-package) ;; Use straight.el for use-package expressions
-(straight-use-package 'el-patch)    ;; install use-package with straight.el
-
-;; use-package will use straight.el to auto install missing packages
-(use-package el-patch
-  :straight t)
-
-;; streamlined configuration with setup.el
-;; use this as an alternative to use-package
-(straight-use-package '(setup :type git :host nil :repo "https://git.sr.ht/~pkal/setup"))
-(require 'setup)
-
-;; Uncomment this for debugging purposes
-;; (defun dw/log-require (&rest args)
-;;   (with-current-buffer (get-buffer-create "*require-log*")
-;;     (insert (format "%s\n"
-;;                     (file-name-nondirectory (car args))))))
-;; (add-to-list 'after-load-functions #'dw/log-require)
-
-;; :pkg
-
-;; the :pkg keyword will depend on guix-installed emacs packages unless the parameter seems like a straight.el recipe (it’s a list)
-;; Recipe is always a list
-;; Install via Guix if length == 1 or :guix t is present
-(defvar dw/guix-emacs-packages '()
-  "Contains a list of all Emacs package names that must be
-installed via Guix.")
-;; Examples:
-;; - (org-roam :straight t)
-;; - (git-gutter :straight git-gutter-fringe)
-(defun dw/filter-straight-recipe (recipe)
-  (let* ((plist (cdr recipe))
-         (name (plist-get plist :straight)))
-    (cons (if (and name (not (equal name t)))
-              name
-            (car recipe))
-          (plist-put plist :straight nil))))
-
-(setup-define :pkg
-  (lambda (&rest recipe)
-    (if (and dw/is-guix-system
-             (or (eq (length recipe) 1)
-                 (plist-get (cdr recipe) :guix)))
-        `(add-to-list 'dw/guix-emacs-packages
-                      ,(or (plist-get recipe :guix)
-                           (concat "emacs-" (symbol-name (car recipe)))))
-      `(straight-use-package ',(dw/filter-straight-recipe recipe))))
-  :documentation "Install RECIPE via Guix or straight.el"
-  :shorthand #'cadr)
-
-;; :delay --
-;; delay the loading of a package until a certail amount of idle time has passed
-(setup-define :delay
-   (lambda (&rest time)
-     `(run-with-idle-timer ,(or time 1)
-                           nil ;; Don't repeat
-                           (lambda () (require ',(setup-get 'feature)))))
-   :documentation "Delay loading the feature until a certain amount of idle time has passed.")
-
-;; :disabled --
-;; used to disable a package configuration, similar to :disabled in use-package
-(setup-define :disabled
-  (lambda ()
-    `,(setup-quit))
-  :documentation "Always stop evaluating the body.")
-
-;; :load-after --
-;; this keyword causes a body to be executed after other packages/features are loaded:
-(setup-define :load-after
-    (lambda (features &rest body)
-      (let ((body `(progn
-                     (require ',(setup-get 'feature))
-                     ,@body)))
-        (dolist (feature (if (listp features)
-                             (nreverse features)
-                           (list features)))
-          (setq body `(with-eval-after-load ',feature ,body)))
-        body))
-  :documentation "Load the current feature after FEATURES."
-  :indent 1)
-
 ;; keep .emac.d Clean --
 ;; change the user-emacs-directory to keep unwanted things out of ~/.emacs.d
 (setq user-emacs-directory (expand-file-name "~/.cache/emacs/")
@@ -163,14 +67,114 @@ installed via Guix.")
 ;; start the emacs server from this instance so that all emacsclient calls are routed here
 ;; (server-start)
 
-;; wuodan keyboard bindings
+;;; setting up use-package with straight.el for package management
+;; Package Management setup
+(unless (featurep 'straight) ;; Install straight.el package manager
+  (defvar bootstrap-version) ;; Bootstrap straight.el
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage)))
+
+(straight-use-package 'use-package) ;; Use straight.el for use-package expressions
+(straight-use-package 'el-patch)    ;; install use-package with straight.el
+;; use-package will use straight.el to auto install missing packages
+(use-package el-patch
+  :straight t)
+
+;; use this as an alternative to use-package
+(straight-use-package '(setup :type git :host nil :repo "https://git.sr.ht/~pkal/setup"))
+(require 'setup)
+
+;; extra package extensions
+
+;; :disabled -- add the disabled property
+;; used to disable a package configuration, similar to :disabled in use-package
+(setup-define :disabled
+  (lambda ()
+    `,(setup-quit))
+  :documentation "Always stop evaluating the body.")
+
+;; :load-after -- add the load-after property
+;; this keyword causes a body to be executed after other packages/features are loaded:
+(setup-define :load-after
+    (lambda (features &rest body)
+      (let ((body `(progn
+                     (require ',(setup-get 'feature))
+                     ,@body)))
+        (dolist (feature (if (listp features)
+                             (nreverse features)
+                           (list features)))
+          (setq body `(with-eval-after-load ',feature ,body)))
+        body))
+  :documentation "Load the current feature after FEATURES."
+  :indent 1)
+
+;; :delay -- add the delay property
+;; delay the loading of a package until a certail amount of idle time has passed
+(setup-define :delay
+   (lambda (&rest time)
+     `(run-with-idle-timer ,(or time 1)
+                           nil ;; Don't repeat
+                           (lambda () (require ',(setup-get 'feature)))))
+   :documentation "Delay loading the feature until a certain amount of idle time has passed.")
+
+;; Use for debugging package loaded in emacs
+;; create a new buffer called "require-log" and log the packages as they are loaded by emacs
+(defun dw/log-require (&rest args)
+  (with-current-buffer (get-buffer-create "*require-log*")
+    (insert (format "%s\n"
+                    (file-name-nondirectory (car args))))))
+;; executes the above function when new package is loaded
+(add-to-list 'after-load-functions #'dw/log-require)
+:pkg
+
+;; the :pkg keyword will depend on guix-installed emacs packages unless the parameter seems like a straight.el recipe (ALWAYS-A-LIST). checks for guix or other system.
+;; Install via Guix if length == 1 or :guix t is present.
+(defvar dw/guix-emacs-packages '()
+  "Contains a list of all Emacs package names that must be
+installed via Guix.")
+;; Examples:
+;; - (org-roam :straight t)
+;; - (git-gutter :straight git-gutter-fringe)
+
+;; modifies packages to use straight package manager if guix system is unavailable.
+(defun dw/filter-straight-recipe (recipe)
+  (let* ((plist (cdr recipe))
+         (name (plist-get plist :straight)))
+    (cons (if (and name (not (equal name t)))
+              name
+            (car recipe))
+          (plist-put plist :straight nil))))
+
+;; handle the emacs package installation after checking if the system is guix or not.
+(setup-define :pkg
+  (lambda (&rest recipe)
+    (if (and dw/is-guix-system
+             (or (eq (length recipe) 1)
+                 (plist-get (cdr recipe) :guix)))
+        `(add-to-list 'dw/guix-emacs-packages
+                      ,(or (plist-get recipe :guix)
+                           (concat "emacs-" (symbol-name (car recipe)))))
+      `(straight-use-package ',(dw/filter-straight-recipe recipe))))
+  :documentation "Install RECIPE via Guix or straight.el"
+  :shorthand #'cadr)
+
+;;; wuodan keyboard bindings
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit) ;; esc cancels all
 (global-set-key (kbd "C-c C-c") 'comment-region) ;; comment region
 (global-set-key (kbd "C-c c") 'uncomment-region) ;; uncomment region
 (global-set-key (kbd "C->") 'indent-rigidly-right-to-tab-stop) ;; group indent right force
 (global-set-key (kbd "C-<") 'indent-rigidly-left-to-tab-stop) ;; group indent left force
 
-;; General settings ; Toggle variables with t and nil
+;;; General settings ; Toggle variables with t and nil
 (setq inhibit-startup-message t                  ; Don't show the splash screen
       visible-bell t                             ; Flash the frame to represent a bell 
       use-dialog-box nil                         ; Mouse commands use dialog boxes to ask questions
@@ -210,8 +214,7 @@ installed via Guix.")
 ;; dont warn when advice is added for functions
 (setq ad-redefinition-action 'accept)
 
-;; emacs themes !!!!! REWERITE WITH USE_PACKAGE
-
+;;; emacs themes !!!!! REWERITE WITH USE_PACKAGE
 ;; Custom values to be loaded for the selected theme 
 ;; These variables will act as input when loading the selected theme
 
@@ -246,8 +249,7 @@ installed via Guix.")
 (setq custom-file (locate-user-emacs-file "custom-vars.el"))
 (load custom-file 'noerror 'nomessage)
 
-;; package-archives
-
+;;; package-archives
 ;; setup melpa package-archives
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
@@ -257,8 +259,7 @@ installed via Guix.")
 (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
 (package-initialize)
 
-;; lsp-mode
-
+;;; lsp-mode
 ;; setup lsp-mode and lsp-deferred 
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
@@ -285,23 +286,24 @@ installed via Guix.")
   (lsp-mode . lsp-enable-which-key-integration) ;;which-key with lsp
   (lsp-mode . lsp-lens-enable) ;;lsp lens have to check
   :config
-  (setq lsp-auto-guess-root t)
-  (setq lsp-log-io nil)
-  (setq lsp-restart 'auto-restart)
-  (setq lsp-enable-symbol-highlighting nil)
-  (setq lsp-enable-on-type-formatting nil)
-  (setq lsp-signature-auto-activate nil)
-  (setq lsp-signature-render-documentation nil)
-  (setq lsp-eldoc-hook nil)
-  (setq lsp-modeline-code-actions-enable nil)
-  (setq lsp-modeline-diagnostics-enable nil)
-  (setq lsp-headerline-breadcrumb-enable nil)
-  (setq lsp-semantic-tokens-enable nil)
-  (setq lsp-enable-folding nil)
-  (setq lsp-enable-imenu nil)
-  (setq lsp-enable-snippet nil)
-  (setq read-process-output-max (* 1024 1024)) ;; 1MB
-  (setq lsp-idle-delay 0.5))
+  (setq
+   lsp-auto-guess-root t
+   lsp-log-io nil
+   lsp-restart 'auto-restart	
+   lsp-enable-symbol-highlighting nil	
+   lsp-enable-on-type-formatting nil	
+   lsp-signature-auto-activate nil	
+   lsp-signature-render-documentation	
+   lsp-eldoc-hook nil	
+   lsp-modeline-code-actions-enable nil	
+   lsp-modeline-diagnostics-enable nil	
+   lsp-headerline-breadcrumb-enable nil	
+   lsp-semantic-tokens-enable nil	
+   lsp-enable-folding nil	
+   lsp-enable-imenu nil	
+   lsp-enable-snippet nil	
+   read-process-output-max (* 1024 1024) ;; 1MB
+   lsp-idle-delay 0.5))
 
 ;; setup lsp-ui for lsp-mode
 (use-package lsp-ui
@@ -439,17 +441,17 @@ installed via Guix.")
     :prefix lsp-keymap-prefix
     "d" '(dap-hydra t :wk "debugger")))
 
-;; optional if you want which-key integration
-(use-package which-key
-  :config
-  (which-key-mode))
-
 ;; company auto complete
 (use-package company
+  :ensure t
+  :defer t
   :after
   lsp-mode
   :hook
   (lsp-mode . company-mode)
+  :config
+  (global-company-mode t)
+  
   :bind (:map company-active-map
               ("<tab>" . company-complete-selection))
   (:map lsp-mode-map
@@ -530,13 +532,20 @@ installed via Guix.")
   :init
   (add-hook 'csharp-mode-hook #'company-mode)
   (add-hook 'csharp-mode-hook #'rainbow-delimiters-mode))
-   
+
+;;; other packages for quality of life
 ;; font settings
 (let ((mono-spaced-font "Monospace")
       (proportionately-spaced-font "Sans"))
   (set-face-attribute 'default nil :family mono-spaced-font :height 100)
   (set-face-attribute 'fixed-pitch nil :family mono-spaced-font :height 1.0)
   (set-face-attribute 'variable-pitch nil :family proportionately-spaced-font :height 1.0))
+
+;; optional if you want which-key integration
+(use-package which-key
+  :ensure t
+  :config
+  (which-key-mode))
 
 ;; enable icons
 ;; Remember to do M-x and run `nerd-icons-install-fonts' to get the
