@@ -51,7 +51,7 @@
 
 ;; keep .emac.d Clean --
 ;; change the user-emacs-directory to keep unwanted things out of ~/.emacs.d
-(setq user-emacs-directory (expand-file-name "~/.cache/emacs/")
+(setq user-emacs-directory (expand-file-name "~/.emacs.d/.cache/emacs/")
       url-history-file (expand-file-name "url/history" user-emacs-directory))
 					
 ;; update load path --
@@ -66,6 +66,8 @@
 ;; server mode --
 ;; start the emacs server from this instance so that all emacsclient calls are routed here
 ;; (server-start)
+
+
 
 ;;; setting up use-package with straight.el for package management
 ;; Package Management setup
@@ -167,12 +169,16 @@ installed via Guix.")
   :documentation "Install RECIPE via Guix or straight.el"
   :shorthand #'cadr)
 
+
+
 ;;; wuodan keyboard bindings
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit) ;; esc cancels all
 (global-set-key (kbd "C-c C-c") 'comment-region) ;; comment region
 (global-set-key (kbd "C-c c") 'uncomment-region) ;; uncomment region
 (global-set-key (kbd "C->") 'indent-rigidly-right-to-tab-stop) ;; group indent right force
 (global-set-key (kbd "C-<") 'indent-rigidly-left-to-tab-stop) ;; group indent left force
+
+
 
 ;;; General settings ; Toggle variables with t and nil
 (setq inhibit-startup-message t                  ; Don't show the splash screen
@@ -214,6 +220,8 @@ installed via Guix.")
 ;; dont warn when advice is added for functions
 (setq ad-redefinition-action 'accept)
 
+
+
 ;;; emacs themes !!!!! REWERITE WITH USE_PACKAGE
 ;; Custom values to be loaded for the selected theme 
 ;; These variables will act as input when loading the selected theme
@@ -249,6 +257,8 @@ installed via Guix.")
 (setq custom-file (locate-user-emacs-file "custom-vars.el"))
 (load custom-file 'noerror 'nomessage)
 
+
+
 ;;; package-archives
 ;; setup melpa package-archives
 (require 'package)
@@ -258,6 +268,8 @@ installed via Guix.")
 (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
 (package-initialize)
+
+
 
 ;;; lsp-mode
 ;; setup lsp-mode and lsp-deferred 
@@ -293,7 +305,7 @@ installed via Guix.")
    lsp-enable-symbol-highlighting nil	
    lsp-enable-on-type-formatting nil	
    lsp-signature-auto-activate nil	
-   lsp-signature-render-documentation	
+   lsp-signature-render-documentation t
    lsp-eldoc-hook nil	
    lsp-modeline-code-actions-enable nil	
    lsp-modeline-diagnostics-enable nil	
@@ -479,8 +491,9 @@ installed via Guix.")
     :ensure t
     :config (exec-path-from-shell-initialize)))
 
-;;; setting up special language configuration for lsp-mode client
+
 
+;;; setting up special language configuration for lsp-mode client
 ;; eslint for project-specific eslint binary - ensuring compatibility with all projects
 ;; local binary location is usually 'node_modules/.bin/eslint'
 ;; (use-package flymake-eslint
@@ -533,6 +546,8 @@ installed via Guix.")
   (add-hook 'csharp-mode-hook #'company-mode)
   (add-hook 'csharp-mode-hook #'rainbow-delimiters-mode))
 
+
+
 ;;; other packages for quality of life
 ;; font settings
 (let ((mono-spaced-font "Monospace")
@@ -570,8 +585,7 @@ installed via Guix.")
   :hook
   (dired-mode . nerd-icons-dired-mode))
 
-;;; Configure the minibuffer and completions
-
+;; Configure the minibuffer and completions
 (use-package vertico ;; minibuffer completion - helm, ivy alternative
   :ensure t
   :hook (after-init . vertico-mode)
@@ -622,32 +636,6 @@ installed via Guix.")
     (corfu-history-mode 1)
     (add-to-list 'savehist-additional-variables 'corfu-history)))
 
-;;; The file manager (Dired)
-
-(use-package dired
-  :ensure nil
-  :commands (dired)
-  :hook
-  ((dired-mode . dired-hide-details-mode)
-   (dired-mode . hl-line-mode))
-  :config
-  (setq dired-recursive-copies 'always)
-  (setq dired-recursive-deletes 'always)
-  (setq delete-by-moving-to-trash t)
-  (setq dired-dwim-target t))
-
-(use-package dired-subtree
-  :ensure t
-  :after dired
-  :bind
-  ( :map dired-mode-map
-    ("<tab>" . dired-subtree-toggle)
-    ("TAB" . dired-subtree-toggle)
-    ("<backtab>" . dired-subtree-remove)
-    ("S-TAB" . dired-subtree-remove))
-  :config
-  (setq dired-subtree-use-backgrounds nil))
-
 (use-package trashed
   :ensure t
   :commands (trashed)
@@ -687,3 +675,45 @@ installed via Guix.")
           ("e" . wgrep-change-to-wgrep-mode)
           ("C-x C-q" . wgrep-change-to-wgrep-mode)
           ("C-c C-c" . wgrep-finish-edit)))
+
+(use-package page-break-lines
+  :ensure t
+  :config
+  (setq
+   global-page-break-lines-mode t
+   ))
+
+
+
+;;; The file manager (Dired)
+
+(use-package dired
+  :ensure nil
+  :commands (dired)
+  :hook
+  ((dired-mode . dired-hide-details-mode)
+   (dired-mode . hl-line-mode))
+  :config
+  (setq dired-recursive-copies 'always)
+  (setq dired-recursive-deletes 'always)
+  (setq delete-by-moving-to-trash t)
+  (setq dired-dwim-target t))
+
+(use-package dired-subtree
+  :ensure t
+  :after dired
+  :bind
+  ( :map dired-mode-map
+    ("<tab>" . dired-subtree-toggle)
+    ("TAB" . dired-subtree-toggle)
+    ("<backtab>" . dired-subtree-remove)
+    ("S-TAB" . dired-subtree-remove))
+  :config
+  (setq dired-subtree-use-backgrounds nil))
+
+
+
+;;; org mode ;; can add org-roam for enabling database for unordered note taking ;; cant try denote new one
+(use-package org
+  :ensure t
+  )
