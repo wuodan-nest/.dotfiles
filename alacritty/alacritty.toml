@@ -1,0 +1,200 @@
+# .           ..         .           .       .           .           .
+#       .         .            .          .       .
+#             .         ..xxxxxxxxxx....               .       .             .
+#     .             MWMWMWWMWMWMWMWMWMWMWMWMW                       .
+#               IIIIMWMWMWMWMWMWMWMWMWMWMWMWMWMttii:        .           .
+#  .      IIYVVXMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWxx...         .           .
+#      IWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMx..
+#    IIWMWMWMWMWMWMWMWMWBY%ZACH%AND%OWENMWMWMWMWMWMWMWMWMWMWMWMWMx..        .
+#     ""MWMWMWMWMWM"""""""".  .:..   ."""""MWMWMWMWMWMWMWMWMWMWMWMWMWti.
+#  .     ""   . `  .: . :. : .  . :.  .  . . .  """"MWMWMWMWMWMWMWMWMWMWMWMWMti=
+#         . .   :` . :   .  .'.' '....xxxxx...,'. '   ' ."""YWMWMWMWMWMWMWMWMWMW+
+#      ; . ` .  . : . .' :  . ..XXXXXXXXXXXXXXXXXXXXx.    `     . "YWMWMWMWMWMWMW
+# .    .  .  .    . .   .  ..XXXXXXXXWWWWWWWWWWWWWWWWXXXX.  .     .     """""""
+#         ' :  : . : .  ...XXXXXWWW"   W88N88@888888WWWWWXX.   .   .       . .
+#    . ' .    . :   ...XXXXXXWWW"    M88N88GGGGGG888^8M "WMBX.          .   ..  :
+#          :     ..XXXXXXXXWWW"     M88888WWRWWWMW8oo88M   WWMX.     .    :    .
+#            "XXXXXXXXXXXXWW"       WN8888WWWWW  W8@@@8M    BMBRX.         .  : :
+#   .       XXXXXXXX=MMWW":  .      W8N888WWWWWWWW88888W      XRBRXX.  .       .
+#      ....  ""XXXXXMM::::. .        W8@889WWWWWM8@8N8W      . . :RRXx.    .
+#          ``...'''  MMM::.:.  .      W888N89999888@8W      . . ::::"RXV    .  :
+#  .       ..'''''      MMMm::.  .      WW888N88888WW     .  . mmMMMMMRXx
+#       ..' .            ""MMmm .  .       WWWWWWW   . :. :,miMM"""  : ""`    .
+#    .                .       ""MMMMmm . .  .  .   ._,mMMMM"""  :  ' .  :
+#                .                  ""MMMMMMMMMMMMM""" .  : . '   .        .
+#           .              .     .    .                      .         .
+# .                                         .          .         .
+
+# woudan alacritty config file
+
+# author      : wuodan aka Sudhanshu Selvan
+# version     : 1.2.01
+# date        : 03-01-25
+# os          : primarily linux. edit file config to make it work on windows or server setup
+# description : custom configuration file for the terminal emulator alacritty written in TOML
+# usage       : place the file under ~/.config/alacritty/ or check https://alacritty.org/config-alacritty.html
+
+#;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+# DO NOT RUN THIS WITHOUT KNOWING WHAT IT EXECUTES ; RUN AT YOUR OWN RISK!
+#;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+# general settings
+[general]
+import = ["<string>",]
+working_directory = "None"
+live_config_reload = true
+
+[env]
+WINIT_X11_SCALE_FACTOR = "1.0"
+
+[window]
+dimensions = { columns = 0, lines = 0 }
+position = "None"
+padding = { x = 12, y = 12 }
+dynamic_padding = true
+decorations = "Full"
+opacity = 0.8
+blur = false
+startup_mode = "Windowed"
+title = "Alacritty"
+dynamic_title = true
+class = { instance = "Alacritty", general = "Alacritty" }
+decorations_theme_variant = "None"
+resize_increments = false
+option_as_alt = "None"
+
+[scrolling]
+history = 50000
+multiplier = 3
+
+# font settings
+[font]
+normal = { family = "monospace", style = "Regular" }
+bold =  {family = "monospace", style = "Bold" }
+italic = { family = "monospace", style = "Italic" }
+bold_italic = { family = "monospace", style = "Bold Italic" }
+size = 12
+offset = { x = 0, y = 0 }
+glyph_offset = { x = 0, y = 0 }
+builtin_box_drawing = true
+
+# color settings
+[colors]
+cursor = { text = "CellBackground", cursor = "CellForeground" }
+vi_mode_cursor = { text = "CellBackground", cursor = "CellForeground" }
+line_indicator = { foreground = "None", background = "None" }
+footer_bar = { foreground = "#181818", background = "#d8d8d8" }
+selection = { text = "CellBackground", background = "CellForeground" }
+indexed_colors = [] # overide colors # [{ index = <integer>, color = "<string>" },]
+transparent_background_colors = false
+draw_bold_text_with_bright_colors = false
+
+[colors.primary]
+foreground = "#d8d8d8"
+background = "#181818"
+dim_foreground = "#828482"
+bright_foreground = "None"
+
+[colors.search]
+matches = { foreground = "#181818", background = "#ac4242" }
+focused_match = { foreground = "#181818", background = "#f4bf75" }
+
+[colors.hints]
+start = { foreground = "#181818", background = "#f4bf75" }
+end = { foreground = "#181818", background = "#ac4242" }
+
+[colors.normal]
+black = "#181818"
+red = "#ac4242"
+green = "#90a959"
+yellow = "#f4bf75"
+blue = "#6a9fb5"
+magenta = "#aa759f"
+cyan = "#75b5aa"
+white = "#d8d8d8"
+
+[colors.bright]
+black = "#6b6b6b"
+red = "#c55555"
+green = "#aac474"
+yellow = "#feca88"
+blue = "#82b8c8"
+magenta = "#c28cb8"
+cyan = "#93d3c3"
+white = "#f8f8f8"
+
+[colors.dim]
+black = "#0f0f0f"
+red = "#712b2b"
+green = "#5f6f3a"
+yellow = "#a17e4d"
+blue = "#456877"
+magenta = "#704d68"
+cyan = "#4d7770"
+white = "#8e8e8e"
+
+# bell settings
+[bell]
+animation = "Linear" 
+duration = 0
+color = "#ffffff"
+command = "None" # can run program when bell is rung # { program = "<string>", args = ["<string>",] }
+
+# selection settings
+[selection]
+semantic_escape_chars = ",│`|:\"' ()[]{}<>\t"
+save_to_clipboard = false
+
+# cursor settings
+[cursor]
+vi_mode_style = "None"
+blink_interval = 500
+blink_timeout = 0
+unfocused_hollow = true
+thickness = 0.10
+
+[cursor.style]
+shape = "Block" # "Block" | "Underline" | "Beam"
+blinking = "On" # "Never" | "Off" | "On" | "Always"
+
+# terminal settings
+[terminal]
+shell = "/bin/bash"
+osc52 = "OnlyCopy"
+
+# mouse settings
+[mouse]
+hide_when_typing = true
+bindings = [] # [{ <mouse>, <mods>, <mode>, <command> | <chars> | <action> },]
+
+# hints settings
+[hints]
+alphabet = "jfkdls;ahgurieowpq"
+
+[[hints.enabled]]
+command = "xdg-open" # On Linux/BSD
+# command = "open" # On macOS
+# command = { program = "cmd", args = [ "/c", "start", "" ] } # On Windows
+hyperlinks = true
+post_processing = true
+persist = false
+mouse.enabled = true
+binding = { key = "O", mods = "Control|Shift" }
+regex = "(ipfs:|ipns:|magnet:|mailto:|gemini://|gopher://|https://|http://|news:|file:|git://|ssh:|ftp://)[^\u0000-\u001F\u007F-\u009F<>\"\\s{-}\\^⟨⟩`]+"
+
+# keyboard settings - add more keyboard settings as we go
+[keyboard]
+bindings = [
+{ key = "N", mods = "Control|Shift", action = "CreateNewWindow" },
+{ key = "F11", mods = "Control|Shift", action = "ToggleFullscreen" },
+]
+
+# debug settings - troubleshoot issues with alacritty
+[debug]
+render_timer = false
+persistent_logging = false
+log_level = "Warn"
+renderer = "None"
+print_events = false
+highlight_damage = false
+prefer_egl = false
