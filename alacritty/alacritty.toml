@@ -41,7 +41,7 @@
 # general settings
 [general]
 import = ["<string>",]
-working_directory = "~/"
+working_directory = "None"
 live_config_reload = true
 
 [env]
