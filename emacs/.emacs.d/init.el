@@ -280,6 +280,27 @@ installed via Guix.")
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
   :init
   (setq lsp-keymap-prefix "C-c l")
+  :config
+  (setq
+   lsp-auto-guess-root t
+   lsp-log-io nil
+   lsp-restart 'auto-restart	
+   lsp-enable-symbol-highlighting nil	
+   lsp-enable-on-type-formatting nil	
+   lsp-signature-auto-activate nil	
+   lsp-signature-render-documentation t
+   lsp-eldoc-hook nil
+   lsp-eldoc-render-all t
+   lsp-inlay-hint-enable t
+   lsp-modeline-code-actions-enable nil	
+   lsp-modeline-diagnostics-enable nil	
+   lsp-headerline-breadcrumb-enable nil	
+   lsp-semantic-tokens-enable nil	
+   lsp-enable-folding nil	
+   lsp-enable-imenu nil	
+   lsp-enable-snippet nil	
+   read-process-output-max (* 1024 1024) ;; 1MB
+   lsp-idle-delay 0.5)
   ;; replace XXX-mode with concrete major-mode(e. g. python-mode)
   :hook
   ((python-mode ;;pyright
@@ -293,29 +314,18 @@ installed via Guix.")
     typescript-mode ;;ts-ls - typescript-language-server
     web-mode ;; ts-ls/html-ls/css-ls
     csharp-mode ;;    
-    haskell-mode ;;haskell-language-server    
+    haskell-mode ;; haskell-language-server
+    rust-mode ;; rust-analyzer
     ) . lsp-deferred)
   (lsp-mode . lsp-enable-which-key-integration) ;;which-key with lsp
   (lsp-mode . lsp-lens-enable) ;;lsp lens have to check
-  :config
-  (setq
-   lsp-auto-guess-root t
-   lsp-log-io nil
-   lsp-restart 'auto-restart	
-   lsp-enable-symbol-highlighting nil	
-   lsp-enable-on-type-formatting nil	
-   lsp-signature-auto-activate nil	
-   lsp-signature-render-documentation t
-   lsp-eldoc-hook nil	
-   lsp-modeline-code-actions-enable nil	
-   lsp-modeline-diagnostics-enable nil	
-   lsp-headerline-breadcrumb-enable nil	
-   lsp-semantic-tokens-enable nil	
-   lsp-enable-folding nil	
-   lsp-enable-imenu nil	
-   lsp-enable-snippet nil	
-   read-process-output-max (* 1024 1024) ;; 1MB
-   lsp-idle-delay 0.5))
+  (lsp-mode . lsp-ui-mode) ;; enable lsp-ui
+  (lsp-mode . #'lsp-mode-rust-setup) ;; enable lsp-rust-setup function -- below rustic and rust-mode settings
+  :bind (:map lsp-mode-map
+              ("C-c a" . lsp-execute-code-action)
+              ("C-c r" . lsp-rename)
+              ("C-c q" . lsp-workspace-restart)
+              ("C-c Q" . lsp-workspace-shutdown)))
 
 ;; setup lsp-ui for lsp-mode
 (use-package lsp-ui
@@ -327,7 +337,7 @@ installed via Guix.")
   :config
   (setq
    ;; doc settings
-   lsp-ui-doc-enable 1
+   lsp-ui-doc-enable t
    lsp-ui-doc-position 'bottom
    lsp-ui-doc-side 'right
    lsp-ui-doc-delay 1
@@ -341,11 +351,130 @@ installed via Guix.")
    lsp-ui-sideline-delay 1
    ;; peek settings !! need to be tweaked more with define keys
    lsp-ui-peek-enable t
+   lsp-ui-peek-always-show t
    lsp-ui-peek-show-directory t) ;; add lsp ui imenu settings later when we get time
-  :bind (:map lsp-ui-mode-map
-          ("C-c i" . lsp-ui-imenu)))
+  :bind
+  (:map lsp-ui-mode-map
+        ("C-c i" . lsp-ui-imenu)
+	("C-c d" . lsp-ui-doc-glance)))
 
-;; Other lsp extensions
+;;; Other lsp extensions
+
+;; makes sure the exec-path-from-shell is installed when in macos
+(when (memq window-system '(mac ns))
+  (use-package exec-path-from-shell
+    :ensure t
+    :init (exec-path-from-shell-initialize)))
+
+;; optionally if you want to use debugger
+;; (use-package dap-mode)
+;; (use-package dap-LANGUAGE) to load the dap adapter for your language
+(use-package general  ;; keybinding wrapper
+  :ensure t)
+
+(use-package dap-mode
+  :ensure t
+  ;; Uncomment the config below if you want all UI panes to be hidden by default!
+  :custom
+  (lsp-enable-dap-auto-configure nil)
+  :commands dap-debug
+  :config
+  (dap-ui-mode 1)
+  (dap-ui-controls-mode 1)
+  ;; Set up Node debugging
+  (require 'dap-node)
+  (dap-node-setup) ;; Automatically installs Node debug adapter if needed
+  ;; Bind `C-c l d` to `dap-hydra` for easy access
+  (general-define-key
+    :keymaps 'lsp-mode-map
+    :prefix lsp-keymap-prefix
+    "d" '(dap-hydra t :wk "debugger")))
+
+;; company auto complete
+(use-package company
+  :ensure t
+  :defer t
+  :after
+  lsp-mode
+  :hook
+  (lsp-mode . company-mode)
+  (prog-mode . company-mode)
+  (text-mode . company-mode)
+  :config
+  (setq
+   global-company-mode t
+   indent-tab-mode nil
+   company-tooltip-align-annotations t
+   company-minimum-prefix-length 2
+   company-idle-delay 0.5
+   company-begin-commands t)
+  :bind
+  (:map company-active-map
+	("<tab>" . tab-indent-or-complete)
+	("TAB" . tab-indent-or-complete)
+	("C-n". company-select-next)
+	("C-p". company-select-previous)
+	("M-<". company-select-first)
+	("M->". company-select-last))
+  (:map lsp-mode-map
+	("<tab>" . tab-indent-or-complete)
+	("TAB" . tab-indent-or-complete)))
+
+(use-package company-box
+  :ensure t
+  :after company
+  :hook
+  (company-mode . company-box-mode))
+
+;; yasnippet -- have to create our code snippets for diff modes -- <code-snippet><TAB>
+(use-package yasnippet
+  :ensure t
+  :after lsp
+  :config
+  (yas-reload-all)
+  :hook
+  (prog-mode . yas-minor-mode)
+  (text-mode . yas-minor-mode))
+
+(defun company-yasnippet-or-completion () ;; function to check for snippet or fall back to complete
+  (interactive)
+  (or (do-yas-expand)
+      (company-complete-common)))
+
+(defun check-expansion ()      ;; checks if the current position is suitable for snippet expansion
+  (save-excursion              ;; creates a temp buffer to perform checks without modifying current
+    (if (looking-at "\\_>") t  ;; checks if the current point is at the end of certain characters
+      (backward-char 1)
+      (if (looking-at "\\.") t
+        (backward-char 1)
+        (if (looking-at "::") t nil)))))
+
+(defun do-yas-expand ()                       ;; function attemps to expand a yasnippet
+  (let ((yas/fallback-behavior 'return-nil))  ;; fallback to nil if it finds nothing
+    (yas/expand)))
+
+(defun tab-indent-or-complete () ;; combined behaviour for <TAB> key: snippet || complete || indent in order
+  (interactive)
+  (if (minibufferp)
+      (minibuffer-complete)
+    (if (or (not yas/minor-mode)
+            (null (do-yas-expand)))
+        (if (check-expansion)
+            (company-complete-common)
+          (indent-for-tab-command)))))
+
+;; flycheck linting config
+(use-package flycheck
+  :ensure t
+  :init
+  (setq
+   global-flycheck-mode t
+   flycheck-emacs-lisp-load-path 'inherit)
+  :hook
+  (lsp-mode . flycheck-mode)
+  (prog-mode . flycheck-mode)
+  :bind (:map flycheck-mode-map
+              ("C-c l" . flycheck-list-errors)))
 
 ;; if you are helm user
 ;; (use-package helm-lsp
@@ -432,65 +561,6 @@ installed via Guix.")
 ;;         ("C-x t M-t" . treemacs-find-tag))
 ;;   :commands lsp-treemacs-errors-list)
 
-;; optionally if you want to use debugger
-;; (use-package dap-mode)
-;; (use-package dap-LANGUAGE) to load the dap adapter for your language
-(use-package dap-mode
-  ;; Uncomment the config below if you want all UI panes to be hidden by default!
-  :custom
-  (lsp-enable-dap-auto-configure nil)
-  :config
-  (dap-ui-mode 1)
-  :commands dap-debug
-  :config
-  ;; Set up Node debugging
-  (require 'dap-node)
-  (dap-node-setup) ;; Automatically installs Node debug adapter if needed
-
-  ;; Bind `C-c l d` to `dap-hydra` for easy access
-  (general-define-key
-    :keymaps 'lsp-mode-map
-    :prefix lsp-keymap-prefix
-    "d" '(dap-hydra t :wk "debugger")))
-
-;; company auto complete
-(use-package company
-  :ensure t
-  :defer t
-  :after
-  lsp-mode
-  :hook
-  (lsp-mode . company-mode)
-  :config
-  (global-company-mode t)
-  
-  :bind (:map company-active-map
-              ("<tab>" . company-complete-selection))
-  (:map lsp-mode-map
-	("<tab>" . company-indent-or-complete-common))
-  :custom
-  (company-minimum-prefix-length 1)
-  (company-idle-delay 0.0))
-
-(use-package company-box
-  :hook
-  (company-mode . company-box-mode))
-
-;; flycheck linting config
-(use-package flycheck
-  :ensure t
-  :init
-  (setq
-   global-flycheck-mode t
-   flycheck-emacs-lisp-load-path 'inherit))
-
-
-;; makes sure the exec-path-from-shell is installed when in macos
-(when (memq window-system '(mac ns))
-  (use-package exec-path-from-shell
-    :ensure t
-    :config (exec-path-from-shell-initialize)))
-
 
 
 ;;; setting up special language configuration for lsp-mode client
@@ -542,10 +612,89 @@ installed via Guix.")
 ;; c-sharp
 (use-package csharp-mode
   :ensure t
+  :after lsp
   :init
   (add-hook 'csharp-mode-hook #'company-mode)
   (add-hook 'csharp-mode-hook #'rainbow-delimiters-mode))
 
+;; rust config -- checkout rust-mode doc for more shortcuts and hacks
+(use-package rust-mode ;; rust major mode -- basic mode
+  :ensure t
+  :after lsp
+  :init
+  (setq
+   indent-tabs-mode nil    ;; electric-indent-mode to be disabled - default is t
+   rust-format-on-save t   ;; install rustfmt with cargo
+   prettify-symbol-mode t  ;; can config own prettification
+   )
+  :hook
+  (rust-mode . lsp-deferred))
+
+(use-package rustic ;; rust-mode extension built on rust mode itself
+  :ensure t
+  :after lsp
+  :init
+  (setq
+   indent-tabs-mode nil
+   rustic-format-on-save t
+   prettify-symbol-mode t)
+  :hook
+  (rustic-mode . lsp=deferred)
+  :bind (:map rustic-mode-map
+              ("C-c s" . lsp-rust-analyzer-status)))
+
+(defun lsp-mode-rust-setup ()  ;; rust analyzer setup for lsp-mode
+  (lsp-rust-analyzer-cargo-watch-command "clippy")
+  (lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial")
+  (lsp-rust-analyzer-display-chaining-hints t)
+  (lsp-rust-analyzer-display-lifetime-elision-hints-use-parameter-names nil)
+  (lsp-rust-analyzer-display-closure-return-type-hints t)
+  (lsp-rust-analyzer-display-parameter-hints nil)
+  (lsp-rust-analyzer-display-reborrow-hints nil))
+
+;; dap-mode for rust -- independent of the original setup
+(setq dap-cpptools-extension-version "1.5.1")
+(with-eval-after-load 'lsp-rust
+  (require 'dap-cpptools))
+(with-eval-after-load 'dap-cpptools
+  ;; Add a template specific for debugging Rust programs.
+  ;; It is used for new projects, where I can M-x dap-edit-debug-template
+  (dap-register-debug-template "Rust::CppTools Run Configuration"
+                               (list :type "cppdbg"
+                                     :request "launch"
+                                     :name "Rust::Run"
+                                     :MIMode "gdb"
+                                     :miDebuggerPath "rust-gdb"
+                                     :environment []
+                                     :program "${workspaceFolder}/target/debug/hello / replace with binary"
+                                     :cwd "${workspaceFolder}"
+                                     :console "external"
+                                     :dap-compilation "cargo build"
+                                     :dap-compilation-dir "${workspaceFolder}")))
+(with-eval-after-load 'dap-mode
+  (setq dap-default-terminal-kind "integrated") ;; Make sure that terminal programs open a term for I/O in an Emacs buffer
+  (dap-auto-configure-mode +1))
+
+(use-package cargo
+  :ensure t
+  :diminish cargo-minor-mode
+  :hook (rust-mode . cargo-minor-mode))
+
+(use-package rust-playground
+  :ensure t)
+
+;;; have to check if this package works or if it is conflicting with lsp-mode. have to see if we have to make flycheck-rust-setup funciton as well -------!!!!!
+;; (use-package flycheck-rust
+;;   :ensure t
+;;   :after flycheck
+;;   :hook
+;;   (flycheck-rust-mode . #'flycheck-rust-setup))
+
+;; toml setup -- can edit more
+(use-package toml-mode
+  :ensure t
+  :after lsp)
+  
 
 
 ;;; other packages for quality of life
@@ -628,12 +777,12 @@ installed via Guix.")
   (setq corfu-preview-current nil)
   (setq corfu-min-width 20)
 
-  (setq corfu-popupinfo-delay '(1.25 . 0.5))
-  (corfu-popupinfo-mode 1) ; shows documentation after `corfu-popupinfo-delay'
+  (setq corfu-popupinfo-delay '(1.25 . 0.5)
+	corfu-popupinfo-mode t) ; shows documentation after `corfu-popupinfo-delay'
 
   ;; Sort by input history (no need to modify `corfu-sort-function').
   (with-eval-after-load 'savehist
-    (corfu-history-mode 1)
+    (setq corfu-history-mode t)
     (add-to-list 'savehist-additional-variables 'corfu-history)))
 
 (use-package trashed
