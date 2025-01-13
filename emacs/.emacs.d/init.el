@@ -185,7 +185,7 @@ installed via Guix.")
       visible-bell t                             ; Flash the frame to represent a bell 
       use-dialog-box nil                         ; Mouse commands use dialog boxes to ask questions
       global-auto-revert-non-file-buffers t      ; revert dired and other buffers
-
+      max-lisp-eval-depth 10000                  ; lisp eval depth
       default-tab-width 2
       tab-always-indent t)                       ; set default tab width -- experimental
 
@@ -279,10 +279,11 @@ installed via Guix.")
   :defer t
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
   :init
-  (setq lsp-keymap-prefix "C-c l")
+  (setq
+   lsp-keymap-prefix "C-c l")
   :config
   (setq
-   lsp-auto-guess-root t
+   lsp-auto-guess-root nil
    lsp-log-io nil
    lsp-restart 'auto-restart	
    lsp-enable-symbol-highlighting nil	
@@ -330,6 +331,7 @@ installed via Guix.")
 ;; setup lsp-ui for lsp-mode
 (use-package lsp-ui
   :ensure t
+  :defer t
   :after
   (lsp-mode)
   :hook
@@ -374,6 +376,7 @@ installed via Guix.")
 
 (use-package dap-mode
   :ensure t
+  :defer t
   ;; Uncomment the config below if you want all UI panes to be hidden by default!
   :custom
   (lsp-enable-dap-auto-configure nil)
@@ -386,7 +389,7 @@ installed via Guix.")
   (dap-node-setup) ;; Automatically installs Node debug adapter if needed
   ;; Bind `C-c l d` to `dap-hydra` for easy access
   (general-define-key
-    :keymaps 'lsp-mode-map
+    :keymaps #'lsp-mode-map
     :prefix lsp-keymap-prefix
     "d" '(dap-hydra t :wk "debugger")))
 
@@ -422,6 +425,7 @@ installed via Guix.")
 
 (use-package company-box
   :ensure t
+  :defer t
   :after company
   :hook
   (company-mode . company-box-mode))
@@ -429,6 +433,7 @@ installed via Guix.")
 ;; yasnippet -- have to create our code snippets for diff modes -- <code-snippet><TAB>
 (use-package yasnippet
   :ensure t
+  :defer t
   :after lsp
   :config
   (yas-reload-all)
@@ -466,6 +471,8 @@ installed via Guix.")
 ;; flycheck linting config
 (use-package flycheck
   :ensure t
+  :defer t
+  :after lsp
   :init
   (setq
    global-flycheck-mode t
@@ -474,7 +481,7 @@ installed via Guix.")
   (lsp-mode . flycheck-mode)
   (prog-mode . flycheck-mode)
   :bind (:map flycheck-mode-map
-              ("C-c l" . flycheck-list-errors)))
+              ("C-c f" . flycheck-list-errors)))
 
 ;; if you are helm user
 ;; (use-package helm-lsp
@@ -632,14 +639,13 @@ installed via Guix.")
 
 (use-package rustic ;; rust-mode extension built on rust mode itself
   :ensure t
-  :after lsp
   :init
   (setq
    indent-tabs-mode nil
    rustic-format-on-save t
    prettify-symbol-mode t)
   :hook
-  (rustic-mode . lsp=deferred)
+  (rustic-mode . lsp-deferred)
   :bind (:map rustic-mode-map
               ("C-c s" . lsp-rust-analyzer-status)))
 
@@ -693,6 +699,7 @@ installed via Guix.")
 ;; toml setup -- can edit more
 (use-package toml-mode
   :ensure t
+  :defer t
   :after lsp)
   
 
@@ -866,3 +873,4 @@ installed via Guix.")
 (use-package org
   :ensure t
   )
+(put 'dired-find-alternate-file 'disabled nil)
